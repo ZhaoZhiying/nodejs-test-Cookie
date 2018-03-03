@@ -39,6 +39,7 @@ var server = http.createServer(function(request, response){
     readBody(request).then((body)=>{
       console.log(body)
       let strings = body.split('&')//['email=1', 'password=2', 'password_confimration=3']
+      let hash = {}
       strings.forEach((string)=>{
         // string == 'email=1'
         let parts = string.split('=')
@@ -85,6 +86,43 @@ var server = http.createServer(function(request, response){
           response.statusCode = 200
         }
       } 
+      response.end()
+    })
+  }else if(path === '/sign_in' && method === 'GET'){
+    let string = fs.readFileSync('./sign_in.html', 'utf8')
+    response.statusCode = 200
+    response.setHeader('Content-Type','text/html;charset=utf-8' )
+    response.write(string)
+    response.end()
+  }else if(path === '/sign_in' && method === 'POST'){
+    readBody(request).then((body)=>{
+      let strings = body.split('&')//['email=1', 'password=2', 'password_confimration=3']
+      let hash = {}
+      strings.forEach((string)=>{
+        let parts = string.split('=')
+        let key = parts[0]
+        let value = parts[1]
+        hash[key] = decodeURIComponent(value) 
+      })
+      let {email, password, password_confirmation} = hash 
+      var users = fs.readFileSync('./data/users', 'utf8')
+        try{
+          users = JSON.parse(users) // []
+        }catch(exception){
+          users = []
+        }
+        let found;
+        for(let i=0; i<users.length; i++){
+          if(users[i].email === email && users[i].password === password){
+            found = true
+            break;
+          }
+        }
+        if(found){
+          response.statusCode = 200
+        }else{
+          response.statusCode = 401
+        }
       response.end()
     })
   }else if(path === '/main.js'){
