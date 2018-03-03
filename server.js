@@ -44,13 +44,13 @@ var server = http.createServer(function(request, response){
         let parts = string.split('=')
         let key = parts[0]
         let value = parts[1]
-        hash[key] = value // hash['email'] = '1'
+        hash[key] = decodeURIComponent(value) // hash['email'] = '1'
       })
       console.log(hash)
       let {email, password, password_confirmation} = hash
       if(email.indexOf('@') === -1){
         response.statusCode = 400
-        esponse.setHeader('Content-Type','applictaion/json;charset=utf-8' )
+        response.setHeader('Content-Type','applictaion/json;charset=utf-8' )
         response.write(`{
           "errors": {
             "email": "invalid"
@@ -60,7 +60,30 @@ var server = http.createServer(function(request, response){
         response.statusCode = 400
         response.write('password not match')
       }else{
-        response.statusCode = 200
+        var users = fs.readFileSync('./data/users', 'utf8')
+        try{
+          users = JSON.parse(users) // []
+        }catch(exception){
+          users = []
+        }
+        //判断邮箱是否已注册
+        let inUse;
+        for(let i=0; i<users.length; i++){
+          let users = users[i]
+          if(user.email === email){
+            inUse = true
+            break;
+          } 
+        }
+        if(inUse){
+          response.statusCode = 400
+          response.write('email in use')
+        }else{
+          users.push({email: email, password: password})
+          var usersString = JSON.stringify(users) //转成字符串
+          fs.writeFileSync('./data/users', usersString) //只能存字符串，对象是内存里
+          response.statusCode = 200
+        }
       } 
       response.end()
     })
