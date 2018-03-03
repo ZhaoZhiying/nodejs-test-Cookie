@@ -24,7 +24,32 @@ var server = http.createServer(function(request, response){
   console.log('方方说：含查询字符串的路径\n' + pathWithQuery)
 
   if(path === '/'){
+    //首页展示用户名和密码
     let string = fs.readFileSync('./index.html', 'utf8')
+    let cookies = request.headers.cookie.split(';')
+    let hash = {}
+    for(let i=0; i<cookies.length; i++){
+      let parts = cookies[i].split('=')
+      let key = parts[0]
+      let value = parts[1]
+      hash[key] = value
+    }
+    let email = hash.sign_in_email
+    let users = fs.readFileSync('./data/users', 'utf8')
+    let foundUser;
+    users = JSON.parse(users)
+    for(let i=0; i<users.length; i++){
+      if(users[i].email === email){
+        foundUser = users[i]
+        break;
+      }
+    }
+    if(foundUser){
+      string.replace('__password__', foundUser.password)
+    }else{
+      string.replace('__password__', '不知道')
+    }
+
     response.statusCode = 200
     response.setHeader('Content-Type', 'text/html;charset=utf-8')
     response.write(string)
@@ -119,6 +144,8 @@ var server = http.createServer(function(request, response){
           }
         }
         if(found){
+          // 响应头(Response Header)设置 Set-Cookie ，以后请求(Request Header)时候都会带上 Cookie
+          response.setHeader('Set-Cookie',`sign_in_email=${email}`)
           response.statusCode = 200
         }else{
           response.statusCode = 401
